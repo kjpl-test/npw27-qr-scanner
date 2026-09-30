@@ -1,158 +1,4 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-
-  <meta charset="UTF-8">
-
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
-
-  <title>NPW 2027 QR Scanner</title>
-
-  <script src="https://unpkg.com/html5-qrcode"
-          type="text/javascript">
-  </script>
-
-  <style>
-
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-
-    h1 {
-      margin-bottom: 10px;
-    }
-
-    select {
-      width: 100%;
-      max-width: 500px;
-      padding: 12px;
-      margin: 8px 0;
-      font-size: 16px;
-    }
-
-    #reader {
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-    }
-
-    #result {
-      margin: 20px auto;
-      padding: 20px;
-      max-width: 500px;
-      border-radius: 10px;
-      background: #eee;
-      font-size: 18px;
-    }
-
-    .success {
-      background: #d9f7df !important;
-    }
-
-    .error {
-      background: #ffd9d9 !important;
-    }
-
-  </style>
-
-</head>
-
-
-<body>
-
-  <h1>NPW 2027 QR Scanner</h1>
-
-  <p>Select the scanning station:</p>
-
-
-  <!-- DEVICE -->
-
-  <select id="device">
-
-    <option value="">
-      Select Device
-    </option>
-
-    <option value="REG-01">
-      REG-01
-    </option>
-
-    <option value="REG-02">
-      REG-02
-    </option>
-
-    <option value="REG-03">
-      REG-03
-    </option>
-
-    <option value="SEC-01">
-      SEC-01
-    </option>
-
-    <option value="SEC-02">
-      SEC-02
-    </option>
-
-    <option value="SEC-03">
-      SEC-03
-    </option>
-
-  </select>
-
-
-  <!-- ACTIVITY -->
-
-  <select id="activity">
-
-    <option value="">
-      Select Activity
-    </option>
-
-    <option value="Registration">
-      Registration
-    </option>
-
-    <option value="Opening Session">
-      Opening Session
-    </option>
-
-    <option value="Morning Session">
-      Morning Session
-    </option>
-
-    <option value="Lunch">
-      Lunch
-    </option>
-
-    <option value="Afternoon Session">
-      Afternoon Session
-    </option>
-
-    <option value="Certificate">
-      Certificate
-    </option>
-
-  </select>
-
-
-  <!-- CAMERA -->
-
-  <div id="reader"></div>
-
-
-  <!-- RESULT -->
-
-  <div id="result">
-    Waiting for QR code...
-  </div>
-
-
 <script>
-
 
 /*************************************************
  * APPS SCRIPT BACKEND
@@ -168,26 +14,20 @@ const API_URL =
 
 let scanner;
 
-let processing =
-  false;
+let processing = false;
 
 
 /*************************************************
  * RESULT DISPLAY
  *************************************************/
 
-function showResult(
-  message,
-  success
-) {
+function showResult(message, success) {
 
   const result =
     document.getElementById('result');
 
   result.className =
-    success
-      ? 'success'
-      : 'error';
+    success ? 'success' : 'error';
 
   result.innerHTML =
     message;
@@ -208,170 +48,227 @@ function sendScan(participantId) {
     document.getElementById('activity').value;
 
 
+  /***********************************************
+   * VALIDATE DEVICE
+   ***********************************************/
+
   if (!device) {
+
     showResult(
       '<strong>Please select a device.</strong>',
       false
     );
+
     processing = false;
+
     return;
   }
 
 
+  /***********************************************
+   * VALIDATE ACTIVITY
+   ***********************************************/
+
   if (!activity) {
+
     showResult(
       '<strong>Please select an activity.</strong>',
       false
     );
+
     processing = false;
+
     return;
   }
 
 
-  // Show that we are sending the request
+  /***********************************************
+   * SHOW SENDING STATUS
+   ***********************************************/
+
   showResult(
-    '<strong>SENDING TO ATTENDANCE SYSTEM...</strong><br><br>' +
+
+    '<strong>SENDING TO ATTENDANCE SYSTEM...</strong>' +
+    '<br><br>' +
     participantId,
+
     true
+
   );
 
 
-  // Create a unique callback name
+  /***********************************************
+   * UNIQUE JSONP CALLBACK
+   ***********************************************/
+
   const callbackName =
     'npwCallback_' + Date.now();
 
 
-  // Create the callback on the window
+  /***********************************************
+   * CREATE CALLBACK
+   ***********************************************/
+
   window[callbackName] =
     function(response) {
 
-      function handleScanResponse(response) {
-
-  console.log('Backend response:', response);
-
-  const result =
-    document.getElementById('result');
+      console.log(
+        'Backend response:',
+        response
+      );
 
 
-  if (response.success) {
+      /*******************************************
+       * SUCCESS
+       *******************************************/
 
-    result.className = 'success';
+      if (response.success) {
 
-    result.innerHTML =
-      '<strong>✓ SCAN RECORDED</strong>' +
-      '<br><br>' +
-      '<strong>' +
-      response.name +
-      '</strong>' +
-      '<br>' +
-      response.office +
-      '<br><br>' +
-      response.activity +
-      '<br>' +
-      response.status;
+        showResult(
 
-  }
+          '<strong>✓ SCAN RECORDED</strong>' +
+          '<br><br>' +
 
-  else if (response.duplicate) {
+          '<strong>' +
+          response.name +
+          '</strong>' +
 
-    result.className = 'error';
+          '<br>' +
+          response.office +
 
-    result.innerHTML =
-      '<strong>ALREADY RECORDED</strong>' +
-      '<br><br>' +
-      '<strong>' +
-      response.name +
-      '</strong>' +
-      '<br>' +
-      response.activity;
+          '<br><br>' +
+          response.activity +
 
-  }
+          '<br>' +
+          response.status,
 
-  else {
+          true
 
-    result.className = 'error';
+        );
 
-    result.innerHTML =
-      '<strong>SCAN NOT RECORDED</strong>' +
-      '<br><br>' +
-      response.message;
-
-  }
+      }
 
 
-  // Allow the next scan after 3 seconds
+      /*******************************************
+       * DUPLICATE
+       *******************************************/
 
-  setTimeout(function() {
+      else if (response.duplicate) {
 
-    processing = false;
+        showResult(
 
-    result.className = '';
+          '<strong>ALREADY RECORDED</strong>' +
+          '<br><br>' +
 
-    result.innerHTML =
-      'Ready for next scan';
+          '<strong>' +
+          response.name +
+          '</strong>' +
 
-  }, 3000);
+          '<br>' +
+          response.activity,
 
-}
+          false
+
+        );
+
+      }
+
+
+      /*******************************************
+       * OTHER ERROR
+       *******************************************/
+
+      else {
+
+        showResult(
+
+          '<strong>SCAN NOT RECORDED</strong>' +
+          '<br><br>' +
+
+          response.message,
+
+          false
+
+        );
+
+      }
+
+
+      /*******************************************
+       * ALLOW NEXT SCAN
+       *******************************************/
+
+      setTimeout(
+        function() {
+
+          processing = false;
+
+          showResult(
+            'Ready for next scan',
+            false
+          );
+
+        },
+        3000
+      );
+
+
+      /*******************************************
+       * CLEAN UP CALLBACK
+       *******************************************/
+
+      delete window[callbackName];
 
     };
 
 
-  // Create JSONP request
+  /***********************************************
+   * CREATE JSONP SCRIPT
+   ***********************************************/
+
   const script =
     document.createElement('script');
 
 
   script.src =
     API_URL +
+
     '?action=scan' +
+
     '&participantId=' +
-    encodeURIComponent(participantId) +
+    encodeURIComponent(
+      participantId
+    ) +
+
     '&device=' +
-    encodeURIComponent(device) +
+    encodeURIComponent(
+      device
+    ) +
+
     '&activity=' +
-    encodeURIComponent(activity) +
+    encodeURIComponent(
+      activity
+    ) +
+
     '&callback=' +
-    encodeURIComponent(callbackName);
+    encodeURIComponent(
+      callbackName
+    );
 
 
-  script.onload =
-    function() {
-
-      // The script loaded successfully.
-      // If the callback has not fired yet,
-      // give it a little time.
-
-      setTimeout(
-        function() {
-
-          if (processing) {
-
-            showResult(
-              '<strong>BACKEND RESPONSE NOT RECEIVED</strong>' +
-              '<br><br>' +
-              'The attendance system was contacted, ' +
-              'but no response was returned.',
-              false
-            );
-
-            processing = false;
-
-          }
-
-        },
-        2000
-      );
-
-    };
-
+  /***********************************************
+   * REQUEST ERROR
+   ***********************************************/
 
   script.onerror =
     function() {
 
       showResult(
+
         '<strong>UNABLE TO CONTACT ATTENDANCE SYSTEM</strong>',
+
         false
+
       );
 
       processing = false;
@@ -381,143 +278,12 @@ function sendScan(participantId) {
     };
 
 
-  document.body.appendChild(script);
-
-}
-
-
   /***********************************************
-   * CREATE UNIQUE JSONP CALLBACK
+   * ADD REQUEST TO PAGE
    ***********************************************/
 
-  const callbackName =
-    'handleScanResponse';
-
-
-  /***********************************************
-   * CREATE SCRIPT REQUEST
-   ***********************************************/
-
-  const script =
-    document.createElement('script');
-
-
-  script.src =
-    API_URL +
-    '?action=scan' +
-    '&participantId=' +
-    encodeURIComponent(participantId) +
-    '&device=' +
-    encodeURIComponent(device) +
-    '&activity=' +
-    encodeURIComponent(activity) +
-    '&callback=' +
-    callbackName;
-
-
-  script.onerror =
-    function() {
-
-      showResult(
-        '<strong>Unable to contact attendance system.</strong>',
-        false
-      );
-
-      processing = false;
-
-    };
-
-
-  document.body.appendChild(script);
-
-}
-
-
-/*************************************************
- * BACKEND RESPONSE
- *************************************************/
-
-function handleScanResponse(
-  response
-) {
-
-  if (
-    response.success
-  ) {
-
-    showResult(
-
-      '<strong>✓ SCAN RECORDED</strong>' +
-      '<br><br>' +
-      '<strong>' +
-      response.name +
-      '</strong>' +
-      '<br>' +
-      response.office +
-      '<br><br>' +
-      response.activity +
-      '<br>' +
-      response.status,
-
-      true
-
-    );
-
-  }
-
-
-  else if (
-    response.duplicate
-  ) {
-
-    showResult(
-
-      '<strong>ALREADY RECORDED</strong>' +
-      '<br><br>' +
-      '<strong>' +
-      response.name +
-      '</strong>' +
-      '<br>' +
-      response.activity,
-
-      false
-
-    );
-
-  }
-
-
-  else {
-
-    showResult(
-
-      '<strong>SCAN NOT RECORDED</strong>' +
-      '<br><br>' +
-      response.message,
-
-      false
-
-    );
-
-  }
-
-
-  /***********************************************
-   * ALLOW NEXT SCAN
-   ***********************************************/
-
-  setTimeout(
-    function() {
-
-      processing = false;
-
-      showResult(
-        'Waiting for QR code...',
-        false
-      );
-
-    },
-    3000
+  document.body.appendChild(
+    script
   );
 
 }
@@ -527,9 +293,7 @@ function handleScanResponse(
  * CAMERA SCAN SUCCESS
  *************************************************/
 
-function onScanSuccess(
-  decodedText
-) {
+function onScanSuccess(decodedText) {
 
   /***********************************************
    * PREVENT REPEATED SCANS
@@ -543,7 +307,7 @@ function onScanSuccess(
 
 
   /***********************************************
-   * SHOW DETECTED CODE
+   * SHOW DETECTED QR
    ***********************************************/
 
   showResult(
@@ -572,11 +336,9 @@ function onScanSuccess(
  * NORMAL CAMERA SCAN FAILURE
  *************************************************/
 
-function onScanFailure(
-  error
-) {
+function onScanFailure(error) {
 
-  // Ignore normal scanning failures.
+  // Normal scanning failures are ignored.
 
 }
 
@@ -614,14 +376,13 @@ scanner =
   );
 
 
+/*************************************************
+ * START SCANNER
+ *************************************************/
+
 scanner.render(
   onScanSuccess,
   onScanFailure
 );
 
-
 </script>
-
-</body>
-
-</html>
