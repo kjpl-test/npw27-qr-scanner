@@ -199,51 +199,128 @@ function showResult(
  * SEND SCAN TO APPS SCRIPT
  *************************************************/
 
-function sendScan(
-  participantId
-) {
+function sendScan(participantId) {
 
   const device =
-    document
-      .getElementById('device')
-      .value;
+    document.getElementById('device').value;
 
   const activity =
-    document
-      .getElementById('activity')
-      .value;
+    document.getElementById('activity').value;
 
-
-  /***********************************************
-   * VALIDATE SELECTIONS
-   ***********************************************/
 
   if (!device) {
-
     showResult(
       '<strong>Please select a device.</strong>',
       false
     );
-
     processing = false;
-
     return;
-
   }
 
 
   if (!activity) {
-
     showResult(
       '<strong>Please select an activity.</strong>',
       false
     );
-
     processing = false;
-
     return;
-
   }
+
+
+  // Show that we are sending the request
+  showResult(
+    '<strong>SENDING TO ATTENDANCE SYSTEM...</strong><br><br>' +
+    participantId,
+    true
+  );
+
+
+  // Create a unique callback name
+  const callbackName =
+    'npwCallback_' + Date.now();
+
+
+  // Create the callback on the window
+  window[callbackName] =
+    function(response) {
+
+      // Pass response to our normal handler
+      handleScanResponse(response);
+
+      // Remove callback
+      delete window[callbackName];
+
+    };
+
+
+  // Create JSONP request
+  const script =
+    document.createElement('script');
+
+
+  script.src =
+    API_URL +
+    '?action=scan' +
+    '&participantId=' +
+    encodeURIComponent(participantId) +
+    '&device=' +
+    encodeURIComponent(device) +
+    '&activity=' +
+    encodeURIComponent(activity) +
+    '&callback=' +
+    encodeURIComponent(callbackName);
+
+
+  script.onload =
+    function() {
+
+      // The script loaded successfully.
+      // If the callback has not fired yet,
+      // give it a little time.
+
+      setTimeout(
+        function() {
+
+          if (processing) {
+
+            showResult(
+              '<strong>BACKEND RESPONSE NOT RECEIVED</strong>' +
+              '<br><br>' +
+              'The attendance system was contacted, ' +
+              'but no response was returned.',
+              false
+            );
+
+            processing = false;
+
+          }
+
+        },
+        2000
+      );
+
+    };
+
+
+  script.onerror =
+    function() {
+
+      showResult(
+        '<strong>UNABLE TO CONTACT ATTENDANCE SYSTEM</strong>',
+        false
+      );
+
+      processing = false;
+
+      delete window[callbackName];
+
+    };
+
+
+  document.body.appendChild(script);
+
+}
 
 
   /***********************************************
