@@ -245,11 +245,74 @@ function sendScan(participantId) {
   window[callbackName] =
     function(response) {
 
-      // Pass response to our normal handler
-      handleScanResponse(response);
+      function handleScanResponse(response) {
 
-      // Remove callback
-      delete window[callbackName];
+  console.log('Backend response:', response);
+
+  const result =
+    document.getElementById('result');
+
+
+  if (response.success) {
+
+    result.className = 'success';
+
+    result.innerHTML =
+      '<strong>✓ SCAN RECORDED</strong>' +
+      '<br><br>' +
+      '<strong>' +
+      response.name +
+      '</strong>' +
+      '<br>' +
+      response.office +
+      '<br><br>' +
+      response.activity +
+      '<br>' +
+      response.status;
+
+  }
+
+  else if (response.duplicate) {
+
+    result.className = 'error';
+
+    result.innerHTML =
+      '<strong>ALREADY RECORDED</strong>' +
+      '<br><br>' +
+      '<strong>' +
+      response.name +
+      '</strong>' +
+      '<br>' +
+      response.activity;
+
+  }
+
+  else {
+
+    result.className = 'error';
+
+    result.innerHTML =
+      '<strong>SCAN NOT RECORDED</strong>' +
+      '<br><br>' +
+      response.message;
+
+  }
+
+
+  // Allow the next scan after 3 seconds
+
+  setTimeout(function() {
+
+    processing = false;
+
+    result.className = '';
+
+    result.innerHTML =
+      'Ready for next scan';
+
+  }, 3000);
+
+}
 
     };
 
