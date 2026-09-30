@@ -1,0 +1,557 @@
+```html
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
+  <title>NPW 2027 QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"
+          type="text/javascript">
+  </script>
+
+  <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      text-align: center;
+    }
+
+    .header {
+      background: #0057a8;
+      color: white;
+      padding: 20px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .header p {
+      margin: 6px 0 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      margin-bottom: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 450px;
+      margin: auto;
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 10px;
+      background: #f1f3f5;
+    }
+
+    .success {
+      background: #d9f7df !important;
+    }
+
+    .warning {
+      background: #fff3cd !important;
+    }
+
+    .error {
+      background: #f8d7da !important;
+    }
+
+    .result-title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .name {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .office {
+      margin-top: 5px;
+    }
+
+    .details {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="header">
+
+    <h1>NPW 2027</h1>
+
+    <p>QR Registration & Attendance</p>
+
+  </div>
+
+
+  <div class="container">
+
+
+    <div class="card">
+
+      <label>
+        Scanner Device
+      </label>
+
+      <select id="deviceSelect">
+
+        <option value="">
+          Select device
+        </option>
+
+        <option value="REG-01">REG-01</option>
+        <option value="REG-02">REG-02</option>
+        <option value="REG-03">REG-03</option>
+
+        <option value="SEC-01">SEC-01</option>
+        <option value="SEC-02">SEC-02</option>
+        <option value="SEC-03">SEC-03</option>
+
+      </select>
+
+
+      <label>
+        Activity
+      </label>
+
+      <select id="activitySelect">
+
+        <option value="">
+          Select activity
+        </option>
+
+        <option value="Registration">
+          Registration
+        </option>
+
+        <option value="Opening Session">
+          Opening Session
+        </option>
+
+        <option value="Morning Session">
+          Morning Session
+        </option>
+
+        <option value="Lunch">
+          Lunch
+        </option>
+
+        <option value="Afternoon Session">
+          Afternoon Session
+        </option>
+
+        <option value="Certificate">
+          Certificate
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div class="card">
+
+      <h2>Scan QR Code</h2>
+
+      <div id="reader"></div>
+
+      <div id="result">
+
+        <div class="result-title">
+          Ready to Scan
+        </div>
+
+        <p>
+          Select device and activity first.
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+<script>
+
+const SCRIPT_URL =
+  'https://script.google.com/a/macros/psa.gov.ph/s/AKfycbyAs-UqyLR2tqfbfgvWxHgIP0We1ll6F8c-Lua7zbtAO4RzSFN30D-6rnhSR-BUHR8EcA/exec';
+
+
+let DEVICE = '';
+let ACTIVITY = '';
+
+let processing = false;
+
+let lastScan = '';
+let lastScanTime = 0;
+
+
+/*************************************************
+ * SETTINGS
+ *************************************************/
+
+document
+  .getElementById('deviceSelect')
+  .addEventListener(
+    'change',
+    function () {
+
+      DEVICE = this.value;
+
+      localStorage.setItem(
+        'npwDevice',
+        DEVICE
+      );
+
+    }
+  );
+
+
+document
+  .getElementById('activitySelect')
+  .addEventListener(
+    'change',
+    function () {
+
+      ACTIVITY = this.value;
+
+      localStorage.setItem(
+        'npwActivity',
+        ACTIVITY
+      );
+
+    }
+  );
+
+
+/*************************************************
+ * RESTORE SETTINGS
+ *************************************************/
+
+DEVICE =
+  localStorage.getItem('npwDevice') || '';
+
+ACTIVITY =
+  localStorage.getItem('npwActivity') || '';
+
+
+document
+  .getElementById('deviceSelect')
+  .value = DEVICE;
+
+
+document
+  .getElementById('activitySelect')
+  .value = ACTIVITY;
+
+
+/*************************************************
+ * QR SCAN
+ *************************************************/
+
+function onScanSuccess(decodedText) {
+
+  if (processing) {
+    return;
+  }
+
+
+  if (!DEVICE) {
+
+    showMessage(
+      'warning',
+      '⚠️ SELECT DEVICE',
+      'Please select the scanner device.'
+    );
+
+    return;
+  }
+
+
+  if (!ACTIVITY) {
+
+    showMessage(
+      'warning',
+      '⚠️ SELECT ACTIVITY',
+      'Please select the activity.'
+    );
+
+    return;
+  }
+
+
+  const now = Date.now();
+
+
+  if (
+    decodedText === lastScan &&
+    now - lastScanTime < 5000
+  ) {
+
+    return;
+
+  }
+
+
+  lastScan = decodedText;
+  lastScanTime = now;
+
+  processing = true;
+
+
+  showMessage(
+    '',
+    '⏳ PROCESSING',
+    'Checking participant...'
+  );
+
+
+  const callbackName =
+    'npwCallback_' +
+    Date.now();
+
+
+  window[callbackName] =
+    function(result) {
+
+      delete window[callbackName];
+
+      showResult(result);
+
+    };
+
+
+  const url =
+    SCRIPT_URL +
+    '?action=scan' +
+    '&participantId=' +
+    encodeURIComponent(decodedText) +
+    '&device=' +
+    encodeURIComponent(DEVICE) +
+    '&activity=' +
+    encodeURIComponent(ACTIVITY) +
+    '&callback=' +
+    callbackName;
+
+
+  const script =
+    document.createElement('script');
+
+
+  script.src = url;
+
+
+  script.onerror =
+    function() {
+
+      delete window[callbackName];
+
+      showMessage(
+        'error',
+        '❌ CONNECTION ERROR',
+        'Unable to contact the attendance system.'
+      );
+
+      processing = false;
+
+    };
+
+
+  document.body.appendChild(script);
+
+}
+
+
+/*************************************************
+ * RESULT
+ *************************************************/
+
+function showResult(result) {
+
+  if (result.success) {
+
+    showMessage(
+      'success',
+      '✅ SCAN RECORDED',
+      '<strong>' +
+      result.name +
+      '</strong><br>' +
+      result.office +
+      '<br><br>' +
+      result.participantId +
+      '<br>' +
+      result.activity +
+      '<br>' +
+      result.status
+    );
+
+  }
+
+
+  else if (result.duplicate) {
+
+    showMessage(
+      'warning',
+      '⚠️ ALREADY RECORDED',
+      '<strong>' +
+      result.name +
+      '</strong><br>' +
+      result.office +
+      '<br><br>' +
+      result.activity
+    );
+
+  }
+
+
+  else {
+
+    showMessage(
+      'error',
+      '❌ NOT FOUND',
+      result.message
+    );
+
+  }
+
+
+  setTimeout(
+    resetResult,
+    3000
+  );
+
+}
+
+
+/*************************************************
+ * DISPLAY MESSAGE
+ *************************************************/
+
+function showMessage(
+  type,
+  title,
+  message
+) {
+
+  const box =
+    document.getElementById('result');
+
+
+  box.className = type;
+
+
+  box.innerHTML =
+    '<div class="result-title">' +
+    title +
+    '</div>' +
+    '<p>' +
+    message +
+    '</p>';
+
+}
+
+
+/*************************************************
+ * RESET
+ *************************************************/
+
+function resetResult() {
+
+  const box =
+    document.getElementById('result');
+
+
+  box.className = '';
+
+
+  box.innerHTML =
+    '<div class="result-title">' +
+    'Ready to Scan' +
+    '</div>' +
+    '<p>' +
+    'Present participant QR code.' +
+    '</p>';
+
+
+  processing = false;
+
+}
+
+
+/*************************************************
+ * START CAMERA
+ *************************************************/
+
+const scanner =
+  new Html5QrcodeScanner(
+    'reader',
+    {
+      fps: 10,
+
+      qrbox: {
+        width: 250,
+        height: 250
+      }
+    },
+
+    false
+  );
+
+
+scanner.render(
+  onScanSuccess
+);
+
+</script>
+
+</body>
+
+</html>
+```
