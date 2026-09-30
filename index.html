@@ -1,24 +1,14 @@
 <script>
 
-/*************************************************
- * APPS SCRIPT BACKEND
- *************************************************/
-
 const API_URL =
   'https://script.google.com/macros/s/AKfycbyAs-UqyLR2tqfbfgvWxHgIP0We1ll6F8c-Lua7zbtAO4RzSFN30D-6rnhSR-BUHR8EcA/exec';
 
-
-/*************************************************
- * STATE
- *************************************************/
-
-let scanner;
 
 let processing = false;
 
 
 /*************************************************
- * RESULT DISPLAY
+ * SHOW RESULT
  *************************************************/
 
 function showResult(message, success) {
@@ -36,7 +26,37 @@ function showResult(message, success) {
 
 
 /*************************************************
- * SEND SCAN TO APPS SCRIPT
+ * CAMERA SCAN
+ *************************************************/
+
+function onScanSuccess(decodedText) {
+
+  if (processing) {
+    return;
+  }
+
+  processing = true;
+
+  showResult(
+    '<strong>QR DETECTED</strong><br><br>' +
+    decodedText,
+    true
+  );
+
+  sendScan(decodedText);
+
+}
+
+
+function onScanFailure(error) {
+
+  // Ignore normal scanning failures.
+
+}
+
+
+/*************************************************
+ * SEND TO BACKEND
  *************************************************/
 
 function sendScan(participantId) {
@@ -47,10 +67,6 @@ function sendScan(participantId) {
   const activity =
     document.getElementById('activity').value;
 
-
-  /***********************************************
-   * VALIDATE DEVICE
-   ***********************************************/
 
   if (!device) {
 
@@ -65,10 +81,6 @@ function sendScan(participantId) {
   }
 
 
-  /***********************************************
-   * VALIDATE ACTIVITY
-   ***********************************************/
-
   if (!activity) {
 
     showResult(
@@ -82,32 +94,16 @@ function sendScan(participantId) {
   }
 
 
-  /***********************************************
-   * SHOW SENDING STATUS
-   ***********************************************/
-
   showResult(
-
-    '<strong>SENDING TO ATTENDANCE SYSTEM...</strong>' +
-    '<br><br>' +
+    '<strong>SENDING...</strong><br><br>' +
     participantId,
-
     true
-
   );
 
-
-  /***********************************************
-   * UNIQUE JSONP CALLBACK
-   ***********************************************/
 
   const callbackName =
     'npwCallback_' + Date.now();
 
-
-  /***********************************************
-   * CREATE CALLBACK
-   ***********************************************/
 
   window[callbackName] =
     function(response) {
@@ -118,27 +114,19 @@ function sendScan(participantId) {
       );
 
 
-      /*******************************************
-       * SUCCESS
-       *******************************************/
-
       if (response.success) {
 
         showResult(
 
           '<strong>✓ SCAN RECORDED</strong>' +
           '<br><br>' +
-
           '<strong>' +
           response.name +
           '</strong>' +
-
           '<br>' +
           response.office +
-
           '<br><br>' +
           response.activity +
-
           '<br>' +
           response.status,
 
@@ -148,22 +136,15 @@ function sendScan(participantId) {
 
       }
 
-
-      /*******************************************
-       * DUPLICATE
-       *******************************************/
-
       else if (response.duplicate) {
 
         showResult(
 
           '<strong>ALREADY RECORDED</strong>' +
           '<br><br>' +
-
           '<strong>' +
           response.name +
           '</strong>' +
-
           '<br>' +
           response.activity,
 
@@ -173,18 +154,12 @@ function sendScan(participantId) {
 
       }
 
-
-      /*******************************************
-       * OTHER ERROR
-       *******************************************/
-
       else {
 
         showResult(
 
           '<strong>SCAN NOT RECORDED</strong>' +
           '<br><br>' +
-
           response.message,
 
           false
@@ -193,10 +168,6 @@ function sendScan(participantId) {
 
       }
 
-
-      /*******************************************
-       * ALLOW NEXT SCAN
-       *******************************************/
 
       setTimeout(
         function() {
@@ -213,18 +184,10 @@ function sendScan(participantId) {
       );
 
 
-      /*******************************************
-       * CLEAN UP CALLBACK
-       *******************************************/
-
       delete window[callbackName];
 
     };
 
-
-  /***********************************************
-   * CREATE JSONP SCRIPT
-   ***********************************************/
 
   const script =
     document.createElement('script');
@@ -232,43 +195,23 @@ function sendScan(participantId) {
 
   script.src =
     API_URL +
-
     '?action=scan' +
-
     '&participantId=' +
-    encodeURIComponent(
-      participantId
-    ) +
-
+    encodeURIComponent(participantId) +
     '&device=' +
-    encodeURIComponent(
-      device
-    ) +
-
+    encodeURIComponent(device) +
     '&activity=' +
-    encodeURIComponent(
-      activity
-    ) +
-
+    encodeURIComponent(activity) +
     '&callback=' +
-    encodeURIComponent(
-      callbackName
-    );
+    encodeURIComponent(callbackName);
 
-
-  /***********************************************
-   * REQUEST ERROR
-   ***********************************************/
 
   script.onerror =
     function() {
 
       showResult(
-
         '<strong>UNABLE TO CONTACT ATTENDANCE SYSTEM</strong>',
-
         false
-
       );
 
       processing = false;
@@ -278,67 +221,7 @@ function sendScan(participantId) {
     };
 
 
-  /***********************************************
-   * ADD REQUEST TO PAGE
-   ***********************************************/
-
-  document.body.appendChild(
-    script
-  );
-
-}
-
-
-/*************************************************
- * CAMERA SCAN SUCCESS
- *************************************************/
-
-function onScanSuccess(decodedText) {
-
-  /***********************************************
-   * PREVENT REPEATED SCANS
-   ***********************************************/
-
-  if (processing) {
-    return;
-  }
-
-  processing = true;
-
-
-  /***********************************************
-   * SHOW DETECTED QR
-   ***********************************************/
-
-  showResult(
-
-    '<strong>QR DETECTED</strong>' +
-    '<br><br>' +
-    decodedText,
-
-    true
-
-  );
-
-
-  /***********************************************
-   * SEND TO BACKEND
-   ***********************************************/
-
-  sendScan(
-    decodedText
-  );
-
-}
-
-
-/*************************************************
- * NORMAL CAMERA SCAN FAILURE
- *************************************************/
-
-function onScanFailure(error) {
-
-  // Normal scanning failures are ignored.
+  document.body.appendChild(script);
 
 }
 
@@ -347,7 +230,7 @@ function onScanFailure(error) {
  * START CAMERA
  *************************************************/
 
-scanner =
+const scanner =
   new Html5QrcodeScanner(
 
     'reader',
@@ -375,10 +258,6 @@ scanner =
 
   );
 
-
-/*************************************************
- * START SCANNER
- *************************************************/
 
 scanner.render(
   onScanSuccess,
