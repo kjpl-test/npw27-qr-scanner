@@ -8,227 +8,223 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1">
 
-  <title>NPW 2027 QR Scanner</title>
+  <title>NPW 2027 Registration</title>
 
-  <script src="https://unpkg.com/html5-qrcode"
-          type="text/javascript">
+  <script
+    src="https://unpkg.com/html5-qrcode"
+    type="text/javascript">
   </script>
+
 
   <style>
 
     body {
       font-family: Arial, sans-serif;
       text-align: center;
+      margin: 0;
       padding: 20px;
+      background: #f5f5f5;
     }
+
+
+    h1 {
+      margin-bottom: 5px;
+    }
+
+
+    .subtitle {
+      margin-top: 0;
+      color: #666;
+    }
+
 
     #reader {
       width: 100%;
       max-width: 600px;
       margin: 20px auto;
+      background: white;
+      border-radius: 12px;
+      padding: 10px;
     }
+
 
     #result {
       margin: 20px auto;
-      padding: 20px;
+      padding: 25px;
       max-width: 500px;
-      border-radius: 10px;
-      background: #eee;
+      border-radius: 12px;
+      background: #eeeeee;
       font-size: 20px;
+      min-height: 70px;
+      box-sizing: border-box;
     }
+
 
     .success {
-      background: #d9f7df;
+      background: #d9f7df !important;
     }
 
+
+    .duplicate {
+      background: #fff0c2 !important;
+    }
+
+
     .error {
-      background: #ffd9d9;
+      background: #ffdede !important;
+    }
+
+
+    .name {
+      font-size: 25px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+
+    .status {
+      font-size: 23px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+
+    .details {
+      font-size: 17px;
+      line-height: 1.5;
     }
 
   </style>
 
 </head>
 
+
 <body>
 
-  <h1>NPW 2027 QR Scanner</h1>
 
-  <select id="device">
+  <h1>NPW 2027</h1>
 
-    <option value="">
-      Select Device
-    </option>
-
-    <option value="REG-01">
-      REG-01
-    </option>
-
-    <option value="REG-02">
-      REG-02
-    </option>
-
-    <option value="REG-03">
-      REG-03
-    </option>
-
-    <option value="SEC-01">
-      SEC-01
-    </option>
-
-    <option value="SEC-02">
-      SEC-02
-    </option>
-
-    <option value="SEC-03">
-      SEC-03
-    </option>
-
-  </select>
-
-
-  <select id="activity">
-
-    <option value="">
-      Select Activity
-    </option>
-
-    <option value="Registration">
-      Registration
-    </option>
-
-    <option value="Opening Session">
-      Opening Session
-    </option>
-
-    <option value="Morning Session">
-      Morning Session
-    </option>
-
-    <option value="Lunch">
-      Lunch
-    </option>
-
-    <option value="Afternoon Session">
-      Afternoon Session
-    </option>
-
-    <option value="Certificate">
-      Certificate
-    </option>
-
-  </select>
+  <p class="subtitle">
+    Registration
+  </p>
 
 
   <div id="reader"></div>
 
 
   <div id="result">
+
     Waiting for QR code...
+
   </div>
 
 
 <script>
 
+
+/*************************************************
+ * APPS SCRIPT API
+ *************************************************/
+
 const API_URL =
   'https://script.google.com/macros/s/AKfycbyAs-UqyLR2tqfbfgvWxHgIP0We1ll6F8c-Lua7zbtAO4RzSFN30D-6rnhSR-BUHR8EcA/exec';
 
 
+/*************************************************
+ * SCANNER STATE
+ *************************************************/
+
 let processing = false;
 
 
-function showResult(message, success) {
+/*************************************************
+ * DISPLAY RESULT
+ *************************************************/
+
+function showResult(
+  response
+) {
 
   const result =
-    document.getElementById('result');
-
-  result.className =
-    success ? 'success' : 'error';
-
-  result.innerHTML =
-    message;
-
-}
-
-
-function onScanSuccess(decodedText) {
-
-  if (processing) {
-    return;
-  }
-
-  processing = true;
-
-
-  showResult(
-
-    '<strong>QR DETECTED!</strong>' +
-    '<br><br>' +
-    decodedText,
-
-    true
-
-  );
-
-
-  sendScan(decodedText);
-
-}
-
-
-function onScanFailure(error) {
-
-  // Ignore normal scanning failures.
-
-}
-
-
-function sendScan(participantId) {
-
-  const device =
-    document.getElementById('device').value;
-
-  const activity =
-    document.getElementById('activity').value;
-
-
-  if (!device) {
-
-    showResult(
-      '<strong>Please select a device.</strong>',
-      false
+    document.getElementById(
+      'result'
     );
 
-    processing = false;
+
+  if (!response.success) {
+
+    result.className =
+      'error';
+
+
+    result.innerHTML =
+      '<div class="status">ERROR</div>' +
+      '<div class="details">' +
+      response.message +
+      '</div>';
+
 
     return;
 
   }
 
 
-  if (!activity) {
+  if (response.alreadyCheckedIn) {
 
-    showResult(
-      '<strong>Please select an activity.</strong>',
-      false
-    );
+    result.className =
+      'duplicate';
 
-    processing = false;
 
-    return;
+    result.innerHTML =
+
+      '<div class="status">' +
+      'ALREADY CHECKED IN' +
+      '</div>' +
+
+      '<div class="name">' +
+      response.name +
+      '</div>' +
+
+      '<div class="details">' +
+      response.office +
+      '<br>' +
+      'Registration scan recorded' +
+      '</div>';
+
+
+  }
+  else {
+
+    result.className =
+      'success';
+
+
+    result.innerHTML =
+
+      '<div class="status">' +
+      'CHECKED IN' +
+      '</div>' +
+
+      '<div class="name">' +
+      response.name +
+      '</div>' +
+
+      '<div class="details">' +
+      response.office +
+      '</div>';
 
   }
 
+}
 
-  showResult(
 
-    '<strong>SENDING...</strong>' +
-    '<br><br>' +
-    participantId,
+/*************************************************
+ * SEND QR TO APPS SCRIPT
+ *************************************************/
 
-    true
-
-  );
-
+function sendScan(
+  participantId
+) {
 
   const callbackName =
     'npwCallback_' +
@@ -238,79 +234,17 @@ function sendScan(participantId) {
   window[callbackName] =
     function(response) {
 
-      console.log(
-        'Backend response:',
-        response
-      );
+      showResult(response);
 
 
-      if (response.success) {
-
-        showResult(
-
-          '<strong>✓ SCAN RECORDED</strong>' +
-          '<br><br>' +
-          '<strong>' +
-          response.name +
-          '</strong>' +
-          '<br>' +
-          response.office +
-          '<br><br>' +
-          response.activity +
-          '<br>' +
-          response.status,
-
-          true
-
-        );
-
-      }
-
-      else if (response.duplicate) {
-
-        showResult(
-
-          '<strong>ALREADY RECORDED</strong>' +
-          '<br><br>' +
-          '<strong>' +
-          response.name +
-          '</strong>' +
-          '<br>' +
-          response.activity,
-
-          false
-
-        );
-
-      }
-
-      else {
-
-        showResult(
-
-          '<strong>SCAN NOT RECORDED</strong>' +
-          '<br><br>' +
-          response.message,
-
-          false
-
-        );
-
-      }
-
-
+      // Allow another scan after 2 seconds
       setTimeout(
         function() {
 
           processing = false;
 
-          showResult(
-            'Ready for next scan',
-            true
-          );
-
         },
-        3000
+        2000
       );
 
 
@@ -320,32 +254,43 @@ function sendScan(participantId) {
 
 
   const script =
-    document.createElement('script');
+    document.createElement(
+      'script'
+    );
 
 
   script.src =
     API_URL +
     '?action=scan' +
     '&participantId=' +
-    encodeURIComponent(participantId) +
-    '&device=' +
-    encodeURIComponent(device) +
-    '&activity=' +
-    encodeURIComponent(activity) +
+    encodeURIComponent(
+      participantId
+    ) +
     '&callback=' +
-    encodeURIComponent(callbackName);
+    callbackName;
 
 
   script.onerror =
     function() {
 
-      showResult(
+      const result =
+        document.getElementById(
+          'result'
+        );
 
-        '<strong>UNABLE TO CONTACT ATTENDANCE SYSTEM</strong>',
 
-        false
+      result.className =
+        'error';
 
-      );
+
+      result.innerHTML =
+        '<div class="status">' +
+        'CONNECTION ERROR' +
+        '</div>' +
+        '<div class="details">' +
+        'Unable to contact the attendance system.' +
+        '</div>';
+
 
       processing = false;
 
@@ -354,10 +299,70 @@ function sendScan(participantId) {
     };
 
 
-  document.body.appendChild(script);
+  document.body.appendChild(
+    script
+  );
 
 }
 
+
+/*************************************************
+ * QR DETECTED
+ *************************************************/
+
+function onScanSuccess(
+  decodedText
+) {
+
+  if (processing) {
+
+    return;
+
+  }
+
+
+  processing = true;
+
+
+  const participantId =
+    String(
+      decodedText || ''
+    ).trim();
+
+
+  if (!participantId) {
+
+    processing = false;
+
+    return;
+
+  }
+
+
+  sendScan(
+    participantId
+  );
+
+}
+
+
+/*************************************************
+ * NORMAL SCANNER FAILURES
+ *************************************************/
+
+function onScanFailure(
+  error
+) {
+
+  // Ignore normal scanning failures.
+  // The scanner continuously tries again.
+
+}
+
+
+/*************************************************
+ * START CAMERA
+ *************************************************/
 
 const scanner =
   new Html5QrcodeScanner(
@@ -392,6 +397,7 @@ scanner.render(
   onScanSuccess,
   onScanFailure
 );
+
 
 </script>
 
